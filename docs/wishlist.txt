@@ -1,0 +1,97 @@
+# Huffman-rs Long Term Wishlist
+
+## Architecture Improvements
+
+- Replace full 256 x u32 frequency table with sparse representation
+  - Only store non-zero symbols
+  - Use (symbol, frequency) pairs
+  - Compress header size
+
+- Add canonical Huffman encoding mode
+  - Deterministic code assignment without tree transmission
+  - Compatible with DEFLATE-style encoders
+
+- Add tree serialization format
+  - Preorder traversal encoding
+  - 0 = internal node, 1 + byte = leaf
+  - Replace frequency-table-based reconstruction
+
+- Add adaptive Huffman mode
+  - Online encoding without two-pass requirement
+  - Dynamic tree updates during encoding/decoding
+
+## Security / Transformation Layer
+
+- XOR stream encryption layer
+  - Optional passphrase-based key
+  - Applied AFTER compression (correct ordering)
+
+## I/O Layer
+
+- File encoder/decoder CLI tool
+- Streaming file support (large inputs)
+- Memory-mapped file support (optional optimization)
+
+## Performance Optimizations
+
+- Replace recursive DFS with iterative stack-based traversal
+- Optimize BitWriter using fixed-size buffers
+- Reduce allocations in tree construction phase
+
+## Testing / Verification
+
+- Full roundtrip property tests (encode → decode → identity)
+- Fuzz testing for decoder robustness
+- Cross-implementation compatibility tests (Rust/C++ interop later)
+
+## Future Research
+
+- Arithmetic coding comparison module
+- LZ77 hybrid compression mode
+- entropy estimation pre-pass for algorithm selection
+
+## File Format / Header System
+
+- Introduce binary header for all encoded streams
+  - magic bytes for format identification
+  - encoder version field for backward compatibility
+  - tree encoding mode selector
+  - XOR flag indicating encryption layer presence
+
+- Ensure header is NEVER XOR encrypted
+  - payload-only encryption model
+
+- Support multiple tree representations
+  - frequency table (MVP)
+  - serialized tree (future)
+  - canonical Huffman (future)
+  - adaptive Huffman (future)
+
+- Extend versioning system for forward/backward compatibility
+
+## Security / Encryption Layer
+
+- XOR encryption applied to payload only (not header)
+- XOR flag stored in header flags bitfield
+- Decoder must fail hard if passphrase mismatch
+
+## Crypto Improvements (future)
+
+- Add salt field to header for key derivation
+- Add nonce support for deterministic but varied encryption
+- Replace XOR with proper stream cipher (ChaCha20 or similar)
+- Add key derivation function (PBKDF2 / Argon2)
+
+## Passphrase / XOR Layer
+
+- Encoder always requests passphrase input
+- Empty passphrase disables XOR and clears XOR flag
+- Non-empty passphrase enables XOR stream transform
+- Incorrect passphrase produces valid but garbled output (no error)
+
+## Future Improvements
+
+- Add integrity check (checksum or HMAC)
+- Add key derivation (PBKDF2/Argon2)
+- Replace XOR with secure stream cipher (ChaCha20)
+- Add salt in header for key variation

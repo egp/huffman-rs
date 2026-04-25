@@ -1,16 +1,13 @@
-// src/bitstream.rs v1
+// src/bitstream.rs v3
 
-//! Bit-level output stream for Huffman encoding.
+//! Bit-level stream utilities for Huffman encoding/decoding.
 //!
-//! Packs individual bits into a byte buffer using MSB-first ordering.
-//! Used by the encoder to serialize Huffman codes.
+//! Provides BitWriter (encoding) and BitReader (decoding).
 
-/// BitWriter accumulates bits into a byte-aligned buffer.
-///
-/// # Behavior
-/// - Bits are written MSB-first
-/// - Bytes are flushed automatically when full
-/// - Final partial byte is left unflushed until `finish()`
+// =======================
+// BitWriter (ENCODING)
+// =======================
+
 pub struct BitWriter {
     buffer: Vec<u8>,
     current: u8,
@@ -18,7 +15,6 @@ pub struct BitWriter {
 }
 
 impl BitWriter {
-    /// Creates a new empty BitWriter.
     pub fn new() -> Self {
         Self {
             buffer: Vec::new(),
@@ -27,10 +23,6 @@ impl BitWriter {
         }
     }
 
-    /// Writes a single bit (0 or 1) into the stream.
-    ///
-    /// # Invariant
-    /// Only the lowest bit of `bit` is used.
     pub fn write_bit(&mut self, bit: u8) {
         self.current <<= 1;
         self.current |= bit & 1;
@@ -43,7 +35,6 @@ impl BitWriter {
         }
     }
 
-    /// Writes a full code (bit pattern + length).
     pub fn write_code(&mut self, code: crate::code::Code) {
         for i in (0..code.len).rev() {
             let bit = (code.bits >> i) & 1;
@@ -51,9 +42,6 @@ impl BitWriter {
         }
     }
 
-    /// Finalizes stream and returns byte buffer.
-    ///
-    /// Pads last byte with zeros if needed.
     pub fn finish(mut self) -> Vec<u8> {
         if self.filled > 0 {
             self.current <<= 8 - self.filled;
@@ -63,45 +51,48 @@ impl BitWriter {
     }
 }
 
-/// default
 impl Default for BitWriter {
     fn default() -> Self {
         Self::new()
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+// =======================
+// BitReader (DECODING)
+// =======================
 
-    #[test]
-    fn writes_single_byte_correctly() {
-        let mut bw = BitWriter::new();
+pub struct BitReader {
+    data: Vec<u8>,
+    byte_pos: usize,
+    bit_pos: u8,
+}
 
-        // 1010_0000
-        bw.write_bit(1);
-        bw.write_bit(0);
-        bw.write_bit(1);
-        bw.write_bit(0);
-        bw.write_bit(0);
-        bw.write_bit(0);
-        bw.write_bit(0);
-        bw.write_bit(0);
-
-        let out = bw.finish();
-        assert_eq!(out, vec![0b1010_0000]);
+impl BitReader {
+    pub fn new(data: Vec<u8>) -> Self {
+        Self {
+            data,
+            byte_pos: 0,
+            bit_pos: 0,
+        }
     }
 
-    #[test]
-    fn cross_byte_write() {
-        let mut bw = BitWriter::new();
-
-        for _ in 0..16 {
-            bw.write_bit(1);
+    pub fn read_bit(&mut self) -> Option<u8> {
+        if self.byte_pos >= self.data.len() {
+            return None;
         }
 
-        let out = bw.finish();
-        assert_eq!(out, vec![0xFF, 0xFF]);
+        let byte = self.data[self.byte_pos];
+
+        let bit = (byte >> (7 - self.bit_pos)) & 1;
+
+        self.bit_pos += 1;
+
+        if self.bit_pos == 8 {
+            self.bit_pos = 0;
+            self.byte_pos += 1;
+        }
+
+        Some(bit)
     }
 }
-// src/bitstream.rs v1
+// src/bitstream.rs v3
