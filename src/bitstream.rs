@@ -4,6 +4,12 @@ pub struct BitWriter {
     bits_filled: u8,
 }
 
+impl Default for BitWriter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BitWriter {
     pub fn new() -> Self {
         Self {
