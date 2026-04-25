@@ -1,8 +1,22 @@
+// src/tree.rs v2
+//! Huffman tree construction module.
+//!
+//! Builds a deterministic binary tree from a frequency table using a
+//! min-heap priority queue. This tree forms the basis of prefix-free
+//! Huffman encoding.
+
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 
-// src/tree.rs v1
-
+/// A node in the Huffman tree.
+///
+/// # Structure
+/// - Leaf nodes contain a symbol (`Some(u8)`)
+/// - Internal nodes contain `None`
+///
+/// # Invariants
+/// - If `symbol.is_some()`, both children must be `None`
+/// - Internal nodes always have two children
 #[derive(Debug)]
 pub struct Node {
     pub freq: u32,
@@ -10,6 +24,11 @@ pub struct Node {
     pub left: Option<Box<Node>>,
     pub right: Option<Box<Node>>,
 }
+
+/// Wrapper enabling min-heap behavior for Huffman nodes.
+///
+/// Rust's `BinaryHeap` is a max-heap by default, so ordering is reversed.
+// src/tree.rs v3
 
 #[derive(Debug)]
 pub struct HeapNode(pub Box<Node>);
@@ -22,18 +41,29 @@ impl PartialEq for HeapNode {
 
 impl Eq for HeapNode {}
 
-impl PartialOrd for HeapNode {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(other.0.freq.cmp(&self.0.freq))
-    }
-}
-
 impl Ord for HeapNode {
     fn cmp(&self, other: &Self) -> Ordering {
+        // reverse for min-heap behavior
         other.0.freq.cmp(&self.0.freq)
     }
 }
 
+impl PartialOrd for HeapNode {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+/// Constructs a deterministic Huffman tree from a frequency table.
+///
+/// # Algorithm
+/// 1. Insert all non-zero frequency symbols into a min-heap
+/// 2. Repeatedly merge two lowest-frequency nodes
+/// 3. Return the final root node
+///
+/// # Returns
+/// - `Some(root)` if input contains at least one symbol
+/// - `None` if frequency table is empty
 pub fn build_tree(freq: &[u32; 256]) -> Option<Box<Node>> {
     let mut heap = BinaryHeap::new();
 
@@ -73,6 +103,7 @@ pub fn build_tree(freq: &[u32; 256]) -> Option<Box<Node>> {
 mod tests {
     use super::*;
 
+    /// Leaf node invariant: symbol-only node has no children.
     #[test]
     fn node_invariants_leaf() {
         let n = Node {
@@ -87,4 +118,4 @@ mod tests {
         assert!(n.right.is_none());
     }
 }
-// src/tree.rs v1
+// src/tree.rs v2
