@@ -1,17 +1,13 @@
-// tests/roundtrip.rs v2
-use huffman_rs::freq::build_freq;
-use huffman_rs::tree::build_tree;
+// tests/roundtrip.rs v3
+
 use huffman_rs::{decode::decode, encode::encode};
 
 #[test]
 fn roundtrip_repetitive() {
     let data = b"aaaaaa";
 
-    let freq = build_freq(data);
-    let tree = build_tree(&freq).unwrap();
-
-    let encoded = encode(data);
-    let decoded = decode(&tree, &encoded, data.len());
+    let encoded = encode(data, "");
+    let decoded = decode(&encoded, "");
 
     assert!(!encoded.is_empty());
     assert_ne!(encoded, data);
@@ -21,9 +17,30 @@ fn roundtrip_repetitive() {
 #[test]
 fn encoding_changes_data() {
     let data = b"hello world";
-    let encoded = encode(data);
+
+    let encoded = encode(data, "");
 
     assert_ne!(encoded, data);
 }
 
-// tests/roundtrip.rs v2
+#[test]
+fn roundtrip_with_passphrase() {
+    let data = b"hello world";
+
+    let encoded = encode(data, "This is a passphrase");
+    let decoded = decode(&encoded, "This is a passphrase");
+
+    assert_eq!(decoded, data);
+}
+
+#[test]
+fn wrong_passphrase_produces_garbage() {
+    let data = b"hello world";
+
+    let encoded = encode(data, "correct");
+    let decoded = decode(&encoded, "wrong");
+
+    assert_ne!(decoded, data);
+}
+
+// tests/roundtrip.rs v3
